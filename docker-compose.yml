@@ -46,7 +46,7 @@ services:
     image: nish714/weatherly-backend:v1.0.1
     platform: linux/amd64
     ports:
-      - "5000:5000"
+      - "5002:5002"
     environment:
       - NODE_ENV=${NODE_ENV}
       - PORT=${PORT}

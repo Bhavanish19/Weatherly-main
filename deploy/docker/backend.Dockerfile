@@ -16,7 +16,7 @@ COPY server/ ./
 
 # Set build time arguments
 ARG NODE_ENV=development
-ARG PORT=5001
+ARG PORT=5002
 ARG CORS_ORIGINS
 ARG OPENWEATHER_API_KEY
 ARG BASE_URL
@@ -50,7 +50,7 @@ COPY --from=builder /app/package*.json ./
 RUN npm ci --production --omit=dev
 
 # Expose port
-EXPOSE 5000
+EXPOSE 5002
 
 # Set runtime environment variables
 ENV NODE_ENV=$NODE_ENV
