@@ -1,0 +1,13 @@
+node_modules
+.next
+npm-debug.log
+build
+.git
+*.md
+.gitignore
+.DS_Store
+.eslintrc*
+.prettierrc*
+.husky
+coverage
+.vscode

@@ -1,45 +1,53 @@
+# deploy/docker/backend.Dockerfile
 # Build stage
-FROM --platform=linux/amd64 node:18-alpine AS builder
-# Add platform-specific build configurations
-RUN apk add --no-cache python3 make g++
+FROM node:18-alpine AS builder
+
+# Add platform-specific build configurations and npm config
+RUN apk add --no-cache python3 make g++ && \
+    npm config set registry https://registry.npmjs.org/ && \
+    npm config set strict-ssl false
 
 WORKDIR /app
 
-# Use relative paths from the build context (which is the root directory)
+# Copy package files
 COPY server/package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install ALL dependencies
+RUN --mount=type=cache,target=/root/.npm \
+    npm config set fetch-retry-maxtimeout 600000 && \
+    npm config set fetch-retry-mintimeout 10000 && \
+    npm config set fetch-retries 5 && \
+    npm install
 
-# Copy the rest of the backend application
-COPY server/ ./
+# Copy TypeScript config and source files
+COPY server/tsconfig.json ./
+COPY server/src ./src
 
-# Set build time arguments
-ARG NODE_ENV=development
+# Build time arguments with defaults
+ARG NODE_ENV=production
 ARG PORT=5002
-ARG CORS_ORIGINS
+ARG CORS_ORIGINS="*"
 ARG OPENWEATHER_API_KEY
-ARG BASE_URL
+ARG BASE_URL="http://localhost"
 ARG RATE_LIMIT_WINDOW_MS=900000
 ARG RATE_LIMIT_MAX=100
 ARG CACHE_TTL=1800000
 
 # Set environment variables for build
-ENV NODE_ENV=$NODE_ENV
-ENV PORT=$PORT
-ENV CORS_ORIGINS=$CORS_ORIGINS
-ENV OPENWEATHER_API_KEY=$OPENWEATHER_API_KEY
-ENV BASE_URL=$BASE_URL
-ENV RATE_LIMIT_WINDOW_MS=$RATE_LIMIT_WINDOW_MS
-ENV RATE_LIMIT_MAX=$RATE_LIMIT_MAX
-ENV CACHE_TTL=$CACHE_TTL
+ENV NODE_ENV=${NODE_ENV}
+ENV PORT=${PORT}
+ENV CORS_ORIGINS=${CORS_ORIGINS}
+ENV OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+ENV BASE_URL=${BASE_URL}
+ENV RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
+ENV RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+ENV CACHE_TTL=${CACHE_TTL}
 
-# Add TypeScript and build
-RUN npm install --save-dev typescript @types/node @types/express
+# Build the TypeScript code
 RUN npm run build
 
 # Production stage
-FROM --platform=linux/amd64 node:18-alpine
+FROM node:18-alpine
 WORKDIR /app
 
 # Copy built assets and package files
@@ -47,20 +55,25 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 
 # Install production dependencies only
-RUN npm ci --production --omit=dev
+RUN npm config set registry https://registry.npmjs.org/ && \
+    npm config set strict-ssl false && \
+    npm config set fetch-retry-maxtimeout 600000 && \
+    npm config set fetch-retry-mintimeout 10000 && \
+    npm config set fetch-retries 5 && \
+    npm ci --omit=dev
 
 # Expose port
-EXPOSE 5002
+EXPOSE ${PORT}
 
 # Set runtime environment variables
-ENV NODE_ENV=$NODE_ENV
-ENV PORT=$PORT
-ENV CORS_ORIGINS=$CORS_ORIGINS
-ENV OPENWEATHER_API_KEY=$OPENWEATHER_API_KEY
-ENV BASE_URL=$BASE_URL
-ENV RATE_LIMIT_WINDOW_MS=$RATE_LIMIT_WINDOW_MS
-ENV RATE_LIMIT_MAX=$RATE_LIMIT_MAX
-ENV CACHE_TTL=$CACHE_TTL
+ENV NODE_ENV=${NODE_ENV}
+ENV PORT=${PORT}
+ENV CORS_ORIGINS=${CORS_ORIGINS}
+ENV OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+ENV BASE_URL=${BASE_URL}
+ENV RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
+ENV RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+ENV CACHE_TTL=${CACHE_TTL}
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["node", "dist/server.js"]
