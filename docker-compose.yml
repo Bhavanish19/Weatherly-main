@@ -57,7 +57,7 @@ services:
       - RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
       - CACHE_TTL=${CACHE_TTL}
     healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:5000/api/v1/weather/health || exit 1
+      test: wget --no-verbose --tries=1 --spider http://localhost:5002/api/v1/weather/health || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
