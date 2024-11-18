@@ -8,6 +8,7 @@ module "vpc" {
   azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
   private_subnets = var.private_subnet_cidrs
   public_subnets  = var.public_subnet_cidrs
+  map_public_ip_on_launch = true
 
   enable_nat_gateway     = true
   single_nat_gateway     = true  # Set to true to save costs in dev/test

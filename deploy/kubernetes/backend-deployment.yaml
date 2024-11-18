@@ -15,12 +15,17 @@ spec:
     spec:
       containers:
       - name: backend
-        image: nish714/weatherly-backend:v1.0.4 # Replace with your actual image
+        image: nish71/backend:v1.0.1
         ports:
-        - containerPort: 5002
+        - containerPort: 5000  # Changed to match your backend port
         envFrom:
         - configMapRef:
             name: weather-app-config
+        - secretRef:
+            name: weather-app-secret
+        env:
+        - name: PORT
+          value: "5000"
         resources:
           requests:
             cpu: "250m"
@@ -28,3 +33,15 @@ spec:
           limits:
             cpu: "500m"
             memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 20

@@ -1,4 +1,3 @@
-# ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -8,40 +7,40 @@ metadata:
     alb.ingress.kubernetes.io/scheme: "internet-facing"
     alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
-    # alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/healthcheck-path: "/health"
-    alb.ingress.kubernetes.io/success-codes: "200-399"
     alb.ingress.kubernetes.io/group.name: "weather-app"
     alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60
-    
-    # CORS configurations
     alb.ingress.kubernetes.io/cors-allow-headers: "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
     alb.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
     alb.ingress.kubernetes.io/cors-allow-origin: "*"
-
+    # Health check settings
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/success-codes: "200-399"
 spec:
   rules:
   - http:
       paths:
-      - path: /api
+      - path: /api/v1/weather
         pathType: Prefix
         backend:
           service:
             name: backend-svc
             port:
-              number: 5002
+              number: 5000
       - path: /health
         pathType: Exact
         backend:
           service:
             name: backend-svc
             port:
-              number: 5002
+              number: 5000
       - path: /
         pathType: Prefix
         backend:
           service:
             name: frontend-svc
             port:
-              number: 80
+              number: 3000
