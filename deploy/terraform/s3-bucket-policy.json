@@ -1,0 +1,24 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "TerraformStateAccess",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::730335650610:user/bhavanish"
+            },
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:ListBucket",
+                "s3:GetBucketVersioning",
+                "s3:GetBucketLocation"
+            ],
+            "Resource": [
+                "arn:aws:s3:::weather-app-terraform-state-730335650610",
+                "arn:aws:s3:::weather-app-terraform-state-730335650610/*"
+            ]
+        }
+    ]
+}

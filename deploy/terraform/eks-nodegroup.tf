@@ -14,8 +14,8 @@ resource "aws_iam_role" "eks_node_group_role" {
 
   tags = {
     Name    = "${var.project_name}-eks-node-group-role"
-    Owner   = "weatherly-admin"
-    Account = "471112656237"
+    Owner       = "bhavanish"
+    Account     = "730335650610"
   }
 }
 

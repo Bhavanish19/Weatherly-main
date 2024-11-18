@@ -17,11 +17,10 @@ terraform {
   }
  
   backend "s3" {
-    bucket         = "weatherly-terraform-state-2024"
-    key            = "eks/terraform.tfstate"
+    bucket         = "weather-app-terraform-state-730335650610"
+    key            = "terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "weatherly-terraform-lock"
   }
 }
 
@@ -33,8 +32,8 @@ provider "aws" {
       Environment = var.environment
       Project     = var.project_name
       ManagedBy   = "terraform"
-      Owner       = "weatherly-admin"
-      Account     = "471112656237"
+      Owner       = "bhavanish"
+      Account     = "730335650610"
     }
   }
 }

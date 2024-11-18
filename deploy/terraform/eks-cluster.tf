@@ -45,15 +45,15 @@ module "eks" {
       }
 
       tags = {
-        Owner   = "weatherly-admin"
-        Account = "471112656237"
+        Owner       = "bhavanish"
+        Account     = "730335650610"
       }
     }
   }
 
   tags = {
     Environment = var.environment
-    Owner       = "weatherly-admin"
-    Account     = "471112656237"
+    Owner       = "bhavanish"
+    Account     = "730335650610"
   }
 }

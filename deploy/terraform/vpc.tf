@@ -16,8 +16,8 @@ module "vpc" {
 
   tags = {
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
-    Owner = "weatherly-admin"
-    Account = "471112656237"
+    Owner = "bhavanish"
+    Account = "730335650610"
   }
 
   private_subnet_tags = {
