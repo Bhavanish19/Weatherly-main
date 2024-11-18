@@ -1,6 +1,7 @@
 # Build stage
 # Add platform specification
-FROM --platform=linux/amd64 node:18-alpine AS builder
+ARG TARGETPLATFORM
+FROM --platform=$TARGETPLATFORM node:18-alpine AS builder
 # Add platform-specific build configurations and npm config
 RUN apk add --no-cache python3 make g++ && \
     npm config set registry https://registry.npmjs.org/ && \
@@ -17,28 +18,38 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy TypeScript config and source files
 COPY server/tsconfig.json ./
 COPY server/src ./src
-# Build time arguments with defaults
-ARG NODE_ENV="production"
-ARG PORT="5002"
-ARG CORS_ORIGINS="*"
-ARG OPENWEATHER_API_KEY="a74e368f22ed5a82ea99bf5433ddebfc"
-ARG BASE_URL="https://api.openweathermap.org/data/2.5"
-ARG RATE_LIMIT_WINDOW_MS="900000"
-ARG RATE_LIMIT_MAX="100"
-ARG CACHE_TTL="1800000"
+
+ENV NODE_ENV="production"
+ENV PORT=5002
+ENV CORS_ORIGINS="*"
+ENV OPENWEATHER_API_KEY="a74e368f22ed5a82ea99bf5433ddebfc"
+ENV BASE_URL="https://api.openweathermap.org/data/2.5"
+ENV RATE_LIMIT_WINDOW_MS=900000
+ENV RATE_LIMIT_MAX=100
+ENV CACHE_TTL=1800000
+
+# # Build time arguments with defaults
+# ARG NODE_ENV="production"
+# ARG PORT=5002
+# ARG CORS_ORIGINS="*"
+# ARG OPENWEATHER_API_KEY
+# ARG BASE_URL="https://api.openweathermap.org/data/2.5"
+# ARG RATE_LIMIT_WINDOW_MS=900000
+# ARG RATE_LIMIT_MAX=100
+# ARG CACHE_TTL=1800000
 # Set environment variables for build
-ENV NODE_ENV=${NODE_ENV}
-ENV PORT=${PORT}
-ENV CORS_ORIGINS=${CORS_ORIGINS}
-ENV OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
-ENV BASE_URL=${BASE_URL}
-ENV RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
-ENV RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
-ENV CACHE_TTL=${CACHE_TTL}
+# ENV NODE_ENV=${NODE_ENV}
+# ENV PORT=${PORT}
+# ENV CORS_ORIGINS=${CORS_ORIGINS}
+# ENV OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+# ENV BASE_URL=${BASE_URL}
+# ENV RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
+# ENV RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+# ENV CACHE_TTL=${CACHE_TTL}
 # Build the TypeScript code
 RUN npm run build
 # Production stage
-FROM --platform=linux/amd64 node:18-alpine
+FROM --platform=$TARGETPLATFORM node:18-alpine
 WORKDIR /app
 # Copy built assets and package files
 COPY --from=builder /app/dist ./dist
@@ -53,13 +64,22 @@ RUN npm config set registry https://registry.npmjs.org/ && \
 # Expose port
 EXPOSE ${PORT}
 # Set runtime environment variables
-ENV NODE_ENV=${NODE_ENV}
-ENV PORT=${PORT}
-ENV CORS_ORIGINS=${CORS_ORIGINS}
-ENV OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
-ENV BASE_URL=${BASE_URL}
-ENV RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
-ENV RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
-ENV CACHE_TTL=${CACHE_TTL}
+# ENV NODE_ENV=${NODE_ENV}
+# ENV PORT=${PORT}
+# ENV CORS_ORIGINS=${CORS_ORIGINS}
+# ENV OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+# ENV BASE_URL=${BASE_URL}
+# ENV RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
+# ENV RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+# ENV CACHE_TTL=${CACHE_TTL}
+
+ENV NODE_ENV="production"
+ENV PORT=5002
+ENV CORS_ORIGINS="*"
+ENV OPENWEATHER_API_KEY="a74e368f22ed5a82ea99bf5433ddebfc"
+ENV BASE_URL="https://api.openweathermap.org/data/2.5"
+ENV RATE_LIMIT_WINDOW_MS=900000
+ENV RATE_LIMIT_MAX=100
+ENV CACHE_TTL=1800000
 # Start the application
 CMD ["node", "dist/server.js"]
