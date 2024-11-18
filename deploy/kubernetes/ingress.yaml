@@ -10,19 +10,50 @@ metadata:
     alb.ingress.kubernetes.io/group.name: "weather-app"
     alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60
-    alb.ingress.kubernetes.io/cors-allow-headers: "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
-    alb.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    # CORS Settings
+    alb.ingress.kubernetes.io/cors-allow-headers: "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With"
+    alb.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
     alb.ingress.kubernetes.io/cors-allow-origin: "*"
     # Health check settings
-    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
     alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
     alb.ingress.kubernetes.io/healthy-threshold-count: "2"
     alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/healthcheck-path: "/"
     alb.ingress.kubernetes.io/success-codes: "200-399"
+    # Additional settings for better performance
+    alb.ingress.kubernetes.io/load-balancer-attributes: |
+      idle_timeout.timeout_seconds=60,
+      routing.http2.enabled=true,
+      deletion_protection.enabled=false
+    alb.ingress.kubernetes.io/target-group-attributes: |
+      deregistration_delay.timeout_seconds=30,
+      stickiness.enabled=true,
+      stickiness.type=lb_cookie,
+      stickiness.lb_cookie.duration_seconds=86400
 spec:
   rules:
   - http:
       paths:
+      # Next.js specific static files
+      - path: /_next/*
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-svc
+            port:
+              number: 3000
+              
+      # Static files
+      - path: /static/*
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-svc
+            port:
+              number: 3000
+              
+      # API endpoints
       - path: /api/v1/weather
         pathType: Prefix
         backend:
@@ -30,6 +61,8 @@ spec:
             name: backend-svc
             port:
               number: 5000
+              
+      # Health check endpoint
       - path: /health
         pathType: Exact
         backend:
@@ -37,7 +70,9 @@ spec:
             name: backend-svc
             port:
               number: 5000
-      - path: /
+              
+      # Frontend catch-all route (should be last)
+      - path: /*
         pathType: Prefix
         backend:
           service:
