@@ -78,41 +78,33 @@ The backend of Weatherly is powered by a high-performance, TypeScript-based Expr
 
 ## 📜 How to Run the Project
 
-1. **Clone the Repository**: Clone this repository to your local machine using `git clone <repository-url>`.
 
-2. **Install Dependencies**: Navigate to the project directory and run `npm install` to install all required dependencies.
+Clone the Repository: Clone this repository to your local machine using git clone <repository-url>.
 
-3. **Configure Environment Variables**: Create a `.env` file in the root directory with the following keys:
-   - `API_KEY`: Your OpenWeather API key.
-   - Other necessary keys for security and configuration.
+Configure Environment Variables: Create a .env file in the root directory with the following keys:
 
-4. **Run the Development Server**: Run `npm run dev` to start the Next.js development server.
+API_KEY: Your OpenWeather API key.
 
-5. **Start the API Server**: In a separate terminal, navigate to the `server` folder and run `npm start` to start the Express.js server.
+Other necessary keys for security and configuration.
 
-6. **Access the Application**: Once the development server is running, you can access Weatherly in your browser at `http://localhost:3000`.
+Build Docker Image: Build the Docker image using the following command:
 
-## 📄 License
+docker build -t weatherly-app .
 
-This project is licensed under the MIT License. Feel free to use, modify, and distribute as per the terms of the license.
+Run the Docker Container: Run the container on port 3000 using the command:
 
-## 💬 Contributions
+docker run -p 3000:3000 --env-file .env weatherly-app
 
-Contributions are always welcome! Feel free to open issues, fork the repository, and submit pull requests. Let's make Weatherly even better together!
+Access the Application: Once the container is running, you can access Weatherly in your browser at http://localhost:3000.
 
-## 🙌 Acknowledgements
+ScreenShots :
 
-- **OpenWeather API** for providing comprehensive weather data.
-- **React Leaflet** for interactive map functionalities.
-- **Radix UI** for accessible components.
+[Screenshot 2024-11-18 at 3 24 03 AM](https://github.com/user-attachments/assets/f4381d66-b93f-4929-8b60-dfba12d84724)
 
-## 📞 Contact
+![Screenshot 2024-11-18 at 3 24 11 AM](https://github.com/user-attachments/assets/c825eb37-b632-4dbd-ac68-1b1a991b0513)
 
-For any inquiries, issues, or suggestions, please contact:
-- **Email**: [your-email@example.com]
-- **GitHub**: [Your GitHub Profile]
+![Screenshot 2024-11-18 at 3 24 21 AM](https://github.com/user-attachments/assets/ecdf7e5f-ded4-4270-8491-99b01433d2a9)
 
-Thank you for using Weatherly! 🌤️
+![Screenshot 2024-11-18 at 3 24 39 AM](https://github.com/user-attachments/assets/69b39f07-1874-473f-aaae-c679ccc575c2)
 
-We hope you enjoy your experience and always stay informed about the weather around you.
 
