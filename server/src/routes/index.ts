@@ -1,4 +1,4 @@
-// src/routes/weatherRoutes.ts
+// src/routes/index.ts
 
 import express from "express";
 import { getWeatherData, searchCities } from "../controllers"; // Import controller methods

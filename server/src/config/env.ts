@@ -1,3 +1,5 @@
+//server/src/config/env.ts
+
 import dotenv from "dotenv";
 import { z } from "zod";
 

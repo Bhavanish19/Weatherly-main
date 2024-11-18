@@ -1,85 +1,40 @@
-# Build stage
-# Add platform specification
-ARG TARGETPLATFORM
-FROM --platform=$TARGETPLATFORM node:18-alpine AS builder
-# Add platform-specific build configurations and npm config
-RUN apk add --no-cache python3 make g++ && \
-    npm config set registry https://registry.npmjs.org/ && \
-    npm config set strict-ssl false
+# deploy/docker/backend.Dockerfile
+FROM node:20-alpine AS base
+
 WORKDIR /app
-# Copy package files
+
+# Install dependencies
 COPY server/package*.json ./
-# Install ALL dependencies
-RUN --mount=type=cache,target=/root/.npm \
-    npm config set fetch-retry-maxtimeout 600000 && \
-    npm config set fetch-retry-mintimeout 10000 && \
-    npm config set fetch-retries 5 && \
-    npm install
-# Copy TypeScript config and source files
-COPY server/tsconfig.json ./
-COPY server/src ./src
+RUN npm ci
 
-ENV NODE_ENV="production"
-ENV PORT=5002
-ENV CORS_ORIGINS="*"
-ENV OPENWEATHER_API_KEY="a74e368f22ed5a82ea99bf5433ddebfc"
-ENV BASE_URL="https://api.openweathermap.org/data/2.5"
-ENV RATE_LIMIT_WINDOW_MS=900000
-ENV RATE_LIMIT_MAX=100
-ENV CACHE_TTL=1800000
+# Copy source code
+COPY server .
 
-# # Build time arguments with defaults
-# ARG NODE_ENV="production"
-# ARG PORT=5002
-# ARG CORS_ORIGINS="*"
-# ARG OPENWEATHER_API_KEY
-# ARG BASE_URL="https://api.openweathermap.org/data/2.5"
-# ARG RATE_LIMIT_WINDOW_MS=900000
-# ARG RATE_LIMIT_MAX=100
-# ARG CACHE_TTL=1800000
-# Set environment variables for build
-# ENV NODE_ENV=${NODE_ENV}
-# ENV PORT=${PORT}
-# ENV CORS_ORIGINS=${CORS_ORIGINS}
-# ENV OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
-# ENV BASE_URL=${BASE_URL}
-# ENV RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
-# ENV RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
-# ENV CACHE_TTL=${CACHE_TTL}
-# Build the TypeScript code
+# Create .env from build args
+ARG NODE_ENV
+ARG PORT
+ARG CORS_ORIGINS
+ARG OPENWEATHER_API_KEY
+ARG BASE_URL
+ARG RATE_LIMIT_WINDOW_MS
+ARG RATE_LIMIT_MAX
+ARG CACHE_TTL
+
+RUN echo "NODE_ENV=$NODE_ENV" > .env && \
+    echo "PORT=$PORT" >> .env && \
+    echo "CORS_ORIGINS=$CORS_ORIGINS" >> .env && \
+    echo "OPENWEATHER_API_KEY=$OPENWEATHER_API_KEY" >> .env && \
+    echo "BASE_URL=$BASE_URL" >> .env && \
+    echo "RATE_LIMIT_WINDOW_MS=$RATE_LIMIT_WINDOW_MS" >> .env && \
+    echo "RATE_LIMIT_MAX=$RATE_LIMIT_MAX" >> .env && \
+    echo "CACHE_TTL=$CACHE_TTL" >> .env
+
+# Build TypeScript code
 RUN npm run build
-# Production stage
-FROM --platform=$TARGETPLATFORM node:18-alpine
-WORKDIR /app
-# Copy built assets and package files
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
-# Install production dependencies only
-RUN npm config set registry https://registry.npmjs.org/ && \
-    npm config set strict-ssl false && \
-    npm config set fetch-retry-maxtimeout 600000 && \
-    npm config set fetch-retry-mintimeout 10000 && \
-    npm config set fetch-retries 5 && \
-    npm ci --omit=dev
-# Expose port
-EXPOSE ${PORT}
-# Set runtime environment variables
-# ENV NODE_ENV=${NODE_ENV}
-# ENV PORT=${PORT}
-# ENV CORS_ORIGINS=${CORS_ORIGINS}
-# ENV OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
-# ENV BASE_URL=${BASE_URL}
-# ENV RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
-# ENV RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
-# ENV CACHE_TTL=${CACHE_TTL}
 
-ENV NODE_ENV="production"
-ENV PORT=5002
-ENV CORS_ORIGINS="*"
-ENV OPENWEATHER_API_KEY="a74e368f22ed5a82ea99bf5433ddebfc"
-ENV BASE_URL="https://api.openweathermap.org/data/2.5"
-ENV RATE_LIMIT_WINDOW_MS=900000
-ENV RATE_LIMIT_MAX=100
-ENV CACHE_TTL=1800000
-# Start the application
+# Remove development dependencies
+RUN npm prune --production
+
+EXPOSE 5000
+
 CMD ["node", "dist/server.js"]

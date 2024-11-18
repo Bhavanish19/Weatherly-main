@@ -1,168 +1,72 @@
-# # Build stage
-# FROM node:18-alpine AS builder
+FROM node:20-alpine AS base
 
-# # Add platform-specific build configurations and npm config
-# RUN apk add --no-cache python3 make g++ && \
-#     npm config set registry https://registry.npmjs.org/ && \
-#     npm config set strict-ssl false
-
-# WORKDIR /app
-
-# # Copy package files
-# COPY client/package*.json ./
-
-# # Install ALL dependencies
-# RUN --mount=type=cache,target=/root/.npm \
-#     npm config set fetch-retry-maxtimeout 600000 && \
-#     npm config set fetch-retry-mintimeout 10000 && \
-#     npm config set fetch-retries 5 && \
-#     npm install
-
-# # Copy configuration files with correct paths
-# COPY client/tsconfig.json ./
-# COPY client/next.config.mjs ./
-# COPY client/postcss.config.mjs ./
-# COPY client/tailwind.config.ts ./
-# COPY client/.eslintrc.json ./
-# COPY client/.prettierrc ./
-# COPY client/.prettierignore ./
-# COPY client/components.json ./
-
-# # Copy source directory
-# COPY client/src/ ./src/
-
-# # Create public directory and copy if exists
-# RUN mkdir -p public
-# COPY client/src/public/ ./public/
-
-# # Build time arguments with defaults
-# ARG NEXT_PUBLIC_OPENWEATHER_API_KEY="a74e368f22ed5a82ea99bf5433ddebfc"
-# ARG NEXT_PUBLIC_BASE_URL="http://localhost:3000"
-# ARG NEXT_PUBLIC_API_BASE_URL="http://localhost:5002"
-
-# # Set environment variables for build
-# ENV NEXT_PUBLIC_OPENWEATHER_API_KEY=$NEXT_PUBLIC_OPENWEATHER_API_KEY
-# ENV NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL
-# ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-# ENV NEXT_TELEMETRY_DISABLED=1
-
-# # Build the application
-# RUN npm run build
-
-# # Production stage
-# FROM node:18-alpine
-
-# WORKDIR /app
-
-# # Copy necessary files from builder
-# COPY --from=builder /app/.next/ ./.next/
-# COPY --from=builder /app/public/ ./public/
-# COPY --from=builder /app/package*.json ./
-# COPY --from=builder /app/next.config.mjs ./
-
-# # Install production dependencies only
-# RUN npm config set registry https://registry.npmjs.org/ && \
-#     npm config set strict-ssl false && \
-#     npm config set fetch-retry-maxtimeout 600000 && \
-#     npm config set fetch-retry-mintimeout 10000 && \
-#     npm config set fetch-retries 5 && \
-#     npm ci --omit=dev
-
-# # Expose port
-# EXPOSE 3000
-
-# # Set runtime environment variables
-# ENV NODE_ENV=production
-# ENV PORT=3000
-# ENV NEXT_TELEMETRY_DISABLED=1
-# ENV NEXT_PUBLIC_OPENWEATHER_API_KEY=$NEXT_PUBLIC_OPENWEATHER_API_KEY
-# ENV NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL
-# ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-
-# # Start the application
-# CMD ["npm", "start"]
-
-
-# Build stage
-FROM node:18-alpine AS builder
-
-# Add platform-specific build configurations and npm config
-RUN apk add --no-cache python3 make g++ && \
-    npm config set registry https://registry.npmjs.org/ && \
-    npm config set strict-ssl false
-
+# Install dependencies only when needed
+FROM base AS deps
 WORKDIR /app
+COPY client/package.json client/package-lock.json ./
+RUN npm ci
 
-# Copy package files
-COPY client/package*.json ./
+# Install additional tools for environment variable substitution
+FROM base AS builder
+# Install gettext package which provides envsubst
+RUN apk add --no-cache gettext
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY client .
 
-# Install ALL dependencies
-RUN --mount=type=cache,target=/root/.npm \
-    npm config set fetch-retry-maxtimeout 600000 && \
-    npm config set fetch-retry-mintimeout 10000 && \
-    npm config set fetch-retries 5 && \
-    npm install
-
-# Copy configuration files with correct paths
-COPY client/tsconfig.json ./
-COPY client/next.config.mjs ./
-COPY client/postcss.config.mjs ./
-COPY client/tailwind.config.ts ./
-COPY client/.eslintrc.json ./
-COPY client/.prettierrc ./
-COPY client/.prettierignore ./
-COPY client/components.json ./
-
-# Copy source directory
-COPY client/src/ ./src/
-
-# Create public directory and copy if exists
-RUN mkdir -p public
-COPY client/src/public/ ./public/
-
-# Build time arguments with defaults
-ARG NEXT_PUBLIC_OPENWEATHER_API_KEY="default_openweather_key"
-ARG NEXT_PUBLIC_BASE_URL="http://localhost:3000"
-ARG NEXT_PUBLIC_API_BASE_URL="http://localhost:5002"
-
-# Propagate ARG values to ENV
+# Set build-time variables with defaults
 ENV NEXT_PUBLIC_OPENWEATHER_API_KEY=${NEXT_PUBLIC_OPENWEATHER_API_KEY}
 ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
 
-# Build the application
+# Create a template env file
+RUN echo "NEXT_PUBLIC_OPENWEATHER_API_KEY=$NEXT_PUBLIC_OPENWEATHER_API_KEY" > .env.template && \
+    echo "NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL" >> .env.template && \
+    echo "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL" >> .env.template  # Use the environment variable directly
+
+# Create a script to generate environment files at runtime
+RUN echo '#!/bin/sh' > /app/generate-env.sh && \
+    echo 'export API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}' >> /app/generate-env.sh && \
+    echo 'envsubst < .env.template > .env.production' >> /app/generate-env.sh && \
+    echo 'cp -f .env.production .env.local' >> /app/generate-env.sh && \
+    echo 'cp -f .env.production .env' >> /app/generate-env.sh && \
+    chmod +x /app/generate-env.sh
+
+# Run the script to generate initial env files for build
+RUN /app/generate-env.sh
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine
+# Production image, copy all the files and run next
+FROM base AS runner
+RUN apk add --no-cache gettext
 
 WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Copy necessary files from builder
-COPY --from=builder /app/.next/ ./.next/
-COPY --from=builder /app/public/ ./public/
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/next.config.mjs ./
+# Create app directory with proper permissions
+RUN mkdir -p /app && \
+    addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    chown -R nextjs:nodejs /app
 
-# Install production dependencies only
-RUN npm config set registry https://registry.npmjs.org/ && \
-    npm config set strict-ssl false && \
-    npm config set fetch-retry-maxtimeout 600000 && \
-    npm config set fetch-retry-mintimeout 10000 && \
-    npm config set fetch-retries 5 && \
-    npm ci --omit=dev
+# Copy built files and environment generation script
+COPY --from=builder --chown=nextjs:nodejs /app/src/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.env.template ./.env.template
+COPY --from=builder --chown=nextjs:nodejs /app/generate-env.sh ./generate-env.sh
 
-# Expose port
+# Ensure proper permissions
+RUN chmod +x /app/generate-env.sh && \
+    chown -R nextjs:nodejs /app
+
+USER nextjs
 EXPOSE 3000
 
-# Set runtime environment variables
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_PUBLIC_OPENWEATHER_API_KEY=${NEXT_PUBLIC_OPENWEATHER_API_KEY}
-ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
-ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
-
-# Start the application
-CMD ["npm", "start"]
+# Generate environment files and start the server
+CMD ["/bin/sh", "-c", "./generate-env.sh && node server.js"]

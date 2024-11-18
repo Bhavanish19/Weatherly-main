@@ -1,20 +1,24 @@
 // lib/axios.ts
 import axios from 'axios';
 
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-if (!API_BASE_URL) {
-  throw new Error('API_BASE_URL is not defined in environment variables');
-}
+// Use a function to get the API base URL to handle both build and runtime
+const getApiBaseUrl = () => {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!apiBaseUrl) {
+    // Provide a default fallback or handle the error as needed
+    console.warn('API_BASE_URL not found in environment, using default');
+    return 'http://k8s-weatherapp-9192b5bb96-515230204.us-east-1.elb.amazonaws.com/api/v1/weather';
+  }
+  return apiBaseUrl;
+};
 
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 15000, // Increased timeout
+  baseURL: getApiBaseUrl(),
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: false,
 });
 
 // Request interceptor
@@ -24,12 +28,11 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-
     // Add error handling for missing baseURL
     if (!config.baseURL) {
       console.warn('No baseURL provided. Falling back to default.');
+      config.baseURL = getApiBaseUrl();
     }
-
     return config;
   },
   (error) => {
@@ -44,7 +47,6 @@ axiosInstance.interceptors.response.use(
     if (error.code === 'ECONNABORTED') {
       return Promise.reject(new Error('Request timed out. Please try again.'));
     }
-
     if (error.response) {
       // Server responded with error status
       const message = error.response.data?.message || 'An error occurred';

@@ -25,13 +25,9 @@ app.use(helmet());
 
 // Updated CORS configuration with more specific options
 const corsOptions = {
-  origin: ENV.CORS_ORIGINS === '*' 
-    ? true 
-    : ENV.CORS_ORIGINS.split(',').map(origin => origin.trim()),
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  maxAge: 86400, // 24 hours
 };
 
 // CORS configuration: Allow requests from specified origins
@@ -45,13 +41,13 @@ app.use(compression());
 
 // Custom request logging middleware
 app.use((req, res, next) => {
-	logger.info(`${req.method} ${req.url}`); // Log the request method and URL
-	next(); // Pass control to the next middleware
+  logger.info(`${req.method} ${req.url}`); // Log the request method and URL
+  next(); // Pass control to the next middleware
 });
 
 // Health check endpoint: Useful for load balancers and monitoring
 app.get("/health", (req, res) => {
-	res.json({ status: "ok", timestamp: new Date().toISOString() }); // Return a simple health status
+  res.json({ status: "ok", timestamp: new Date().toISOString() }); // Return a simple health status
 });
 
 // Define API routes

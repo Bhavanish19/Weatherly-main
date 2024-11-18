@@ -14,7 +14,7 @@ export async function fetchWeatherData(lat: number, lon: number): Promise<Weathe
         lon: lon.toString(),
       },
     });
-    
+
     if (!response.data.success) {
       throw new Error('Failed to fetch weather data');
     }
@@ -28,7 +28,7 @@ export async function fetchWeatherData(lat: number, lon: number): Promise<Weathe
 
 export async function searchCities(query: string): Promise<City[]> {
   try {
-  const response = await axiosInstance.get<{
+    const response = await axiosInstance.get<{
       success: boolean;
       data: City[];
     }>('/cities', {
